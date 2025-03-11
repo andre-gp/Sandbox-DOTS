@@ -6,6 +6,7 @@ namespace DOTSLearningCore
     class EnableMovementAuthoring : MonoBehaviour
     {
         public GameObject enabledGraphics;
+        public bool startEnabled = false;
 
         class Baker : Baker<EnableMovementAuthoring> {
             public override void Bake(EnableMovementAuthoring authoring) {
@@ -13,7 +14,7 @@ namespace DOTSLearningCore
                 AddComponent(entity, new EnableMovement {
                     enabledGraphics = GetEntity(authoring.enabledGraphics, TransformUsageFlags.None)
                 });
-                SetComponentEnabled<EnableMovement>(entity, false);
+                SetComponentEnabled<EnableMovement>(entity, authoring.startEnabled);
             }
         }
     }
