@@ -1,4 +1,5 @@
 using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
@@ -8,31 +9,53 @@ using UnityEngine;
 [UpdateBefore(typeof(ParentSystem))]
 partial struct SpawnObjects : ISystem
 {
+    [BurstCompile]
+    public void OnCreate(ref SystemState state) {
+        state.RequireForUpdate<EndSimulationEntityCommandBufferSystem.Singleton>();
+    }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        foreach (var (localTransform, spawner) in SystemAPI.Query<RefRW<LocalTransform>, RefRW<Spawner>>()) {
-            spawner.ValueRW.frequency -= Time.deltaTime;
+        var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
+        var createdEcb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
-            localTransform.ValueRW.Position += new float3(0, 0, 10) * Time.deltaTime;
+        var spawnJob = new SpawnJob {
+            deltaTime = SystemAPI.Time.DeltaTime,
+            ecb = createdEcb
+        };
 
-            localTransform.ValueRW = localTransform.ValueRW.RotateY(10 * Time.deltaTime);
+        spawnJob.Schedule();
 
-            if (spawner.ValueRO.frequency <= 0) {
-                spawner.ValueRW.frequency = 0.01f;
-
-                var cube = state.EntityManager.Instantiate(spawner.ValueRO.cube);
-                SystemAPI.SetComponent(cube, LocalTransform.FromPosition(localTransform.ValueRO.Position));
-                
-                var sphere = state.EntityManager.Instantiate(spawner.ValueRO.sphere);
-                SystemAPI.SetComponent(sphere, LocalTransform.FromPosition(localTransform.ValueRO.Position + localTransform.ValueRO.Right() * 3));
-
-                spawner.ValueRW.spawnedCount += 2;
-            }           
-        }
-        
     }
 
+    [BurstCompile]
+    public partial struct SpawnJob : IJobEntity {
+        public float deltaTime;
+
+        public EntityCommandBuffer ecb;
+
+        public void Execute([EntityIndexInQuery] int entityIndexInQuery, ref LocalTransform localTransform, ref Spawner spawner) {
+            spawner.frequency -= deltaTime;
+
+            localTransform.Position += new float3(0, 0, 10) * deltaTime;
+
+            localTransform = localTransform.RotateY(10 * deltaTime);
+
+            if (spawner.frequency <= 0) {
+                spawner.frequency = 0.01f;
+
+                var cube = ecb.Instantiate(spawner.cube);
+                ecb.SetComponent(cube, LocalTransform.FromPosition(localTransform.Position));
+
+                var sphere = ecb.Instantiate(spawner.sphere);
+                ecb.SetComponent(sphere, LocalTransform.FromPosition(localTransform.Position + localTransform.Right() * 3));
+
+                spawner.spawnedCount += 2;
+            }
+        }
+
+        
+    }
 }
 

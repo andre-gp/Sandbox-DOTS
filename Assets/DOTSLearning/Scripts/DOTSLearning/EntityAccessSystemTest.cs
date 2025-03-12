@@ -3,6 +3,7 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 
+[UpdateInGroup(typeof(MySystemGroup))]
 partial struct EntityAccessSystemTest : ISystem
 {
     [BurstCompile]
@@ -10,6 +11,8 @@ partial struct EntityAccessSystemTest : ISystem
     {
         var buffer = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
         //EntityCommandBuffer buffer = new EntityCommandBuffer(Allocator.Temp);
+
+
 
         foreach (var (mSpeed, entity) in SystemAPI.Query<RefRO<MoveSpeed>>().WithEntityAccess()) {
             if(mSpeed.ValueRO.moveSpeed >= 20) {
