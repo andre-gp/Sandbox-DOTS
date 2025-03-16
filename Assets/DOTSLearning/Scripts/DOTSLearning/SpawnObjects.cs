@@ -17,6 +17,11 @@ partial struct SpawnObjects : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        // Creating a bunch of entities:
+        // var instantiatedEntities = state.EntityManager.Instantiate(Entity.Null, 1000, Allocator.Temp);
+        
+
+
         var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
         var createdEcb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
 
@@ -54,8 +59,6 @@ partial struct SpawnObjects : ISystem
                 spawner.spawnedCount += 2;
             }
         }
-
-        
     }
 }
 

@@ -20,6 +20,10 @@ namespace DOTSLearningCore {
 
         [BurstCompile]
         public void OnUpdate(ref SystemState state) {
+            //foreach (var unitAspect in SystemAPI.Query<UnitAspect>()) {
+            //    unitAspect.localTransform.ValueRW.Scale = ((float)SystemAPI.Time.ElapsedTime / 10f);
+            //}
+
             UnitMoverJob unitMoverJob = new UnitMoverJob {
                 deltaTime = SystemAPI.Time.DeltaTime
             };
