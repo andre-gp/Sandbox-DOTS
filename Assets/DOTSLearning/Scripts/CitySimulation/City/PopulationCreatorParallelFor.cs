@@ -5,6 +5,8 @@ using UnityEngine;
 using Unity.Entities;
 using Unity.Burst;
 using Random = Unity.Mathematics.Random;
+using System;
+using System.Threading.Tasks;
 
 public class PopulationCreatorParallelFor : CreatorBase
 {
@@ -16,6 +18,8 @@ public class PopulationCreatorParallelFor : CreatorBase
 
     Entity prototype;
 
+    ParallelLoopResult result;
+
     private void Start() {
         if (createOnStart) {
             CreatePopulation();
@@ -25,32 +29,7 @@ public class PopulationCreatorParallelFor : CreatorBase
     public void CreatePopulation() {
         isRunning = true;
 
-        World world = World.DefaultGameObjectInjectionWorld;
-
-        EntityManager entityManager = world.EntityManager;
-
-        // Using this way would automatically build the entities at the end of the frame:
-        //var entityQuery = new EntityQueryBuilder(Allocator.Temp)
-        //                  .WithAll<EndSimulationEntityCommandBufferSystem.Singleton>().Build(entityManager);
-
-        //entityQuery.TryGetSingleton(out EndSimulationEntityCommandBufferSystem.Singleton singleton);
-        //var ecb = singleton.CreateCommandBuffer(world.Unmanaged);
-
-        ecb = new EntityCommandBuffer(Allocator.Persistent);
-
-
-        prototype = entityManager.CreateEntity(new ComponentType[] {
-            typeof(Status)
-        });
-
-        var job = new InstantiateJob {
-            entityPrefab = prototype,
-            ecb = ecb.AsParallelWriter(),
-            random = new Random((uint)(UnityEngine.Random.value * uint.MaxValue)),
-            minMaxVal = new int2(20, 100)
-        };
-
-        jobHandle = job.Schedule(populationCount, populationCount / threadCount);
+        FillBuffer();
     }
 
     private void Update() {
@@ -64,7 +43,11 @@ public class PopulationCreatorParallelFor : CreatorBase
         framesToRun -= 1;
 
         if (framesToRun < 0) {
-            jobHandle.Complete();
+
+            if (!result.IsCompleted) {
+                framesToRun = 1;
+                return;
+            }
 
             //var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
             //ecb.Playback(entityManager);
@@ -79,18 +62,26 @@ public class PopulationCreatorParallelFor : CreatorBase
         }
     }
 
-    [BurstCompile]
-    private struct InstantiateJob : IJobParallelFor {
-        public Entity entityPrefab;
-        public EntityCommandBuffer.ParallelWriter ecb;
+    void FillBuffer() {
+        World world = World.DefaultGameObjectInjectionWorld;
 
-        public Random random;
-        public int2 minMaxVal;
+        EntityManager entityManager = world.EntityManager;
 
-        public void Execute(int index) {
-            var instantiatedEntity = ecb.Instantiate(index, entityPrefab);
+        ecb = new EntityCommandBuffer(Allocator.Persistent);
+        //var parallelEcb = ecb;
 
-            ecb.SetComponent(index, instantiatedEntity, new Status {
+
+        prototype = entityManager.CreateEntity(new ComponentType[] {
+            typeof(Status)
+        });
+
+        var random = new Random((uint)(UnityEngine.Random.value * uint.MaxValue));
+        var minMaxVal = new int2(20, 100);
+
+        result = Parallel.For(0, populationCount + 1, index => {
+            var instantiatedEntity = ecb.Instantiate(prototype);
+
+            ecb.SetComponent(instantiatedEntity, new Status {
                 hunger = random.NextInt(minMaxVal.x, minMaxVal.y),
                 thirst = random.NextInt(minMaxVal.x, minMaxVal.y),
                 sleep = random.NextInt(minMaxVal.x, minMaxVal.y),
@@ -105,6 +96,9 @@ public class PopulationCreatorParallelFor : CreatorBase
                 intoxication = random.NextInt(minMaxVal.x, minMaxVal.y),
                 fear = random.NextInt(minMaxVal.x, minMaxVal.y)
             });
-        }
+        });
+
     }
+
+    
 }

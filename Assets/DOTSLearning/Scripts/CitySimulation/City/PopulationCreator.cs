@@ -36,12 +36,13 @@ public class PopulationCreator : CreatorBase
         //entityQuery.TryGetSingleton(out EndSimulationEntityCommandBufferSystem.Singleton singleton);
         //var ecb = singleton.CreateCommandBuffer(world.Unmanaged);
 
-        ecb = new EntityCommandBuffer(Allocator.Persistent);
-
 
         prototype = entityManager.CreateEntity(new ComponentType[] {
             typeof(Status)
         });
+
+
+        ecb = new EntityCommandBuffer(Allocator.Persistent);
 
         var job = new InstantiateJob {
             entityPrefab = prototype,
@@ -66,8 +67,10 @@ public class PopulationCreator : CreatorBase
         if(framesToRun < 0) {
             jobHandle.Complete();
 
-            //var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+            var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
             //ecb.Playback(entityManager);
+
+            ecb.Playback(entityManager);
             ecb.Dispose();
             //entityManager.DestroyEntity(prototype);
 

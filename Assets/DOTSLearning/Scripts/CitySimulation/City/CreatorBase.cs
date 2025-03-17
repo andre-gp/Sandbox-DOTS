@@ -12,5 +12,6 @@ public class CreatorBase : MonoBehaviour
                      
     [SerializeField] protected int threadCount = 16;
 
+    [SerializeField] protected float timeBetweenBatches = 1f;
 
 }
