@@ -1,2 +1,2 @@
 # Sandbox DOTS
- A Unity project dedicating for learning ECS, Jobs and Burst.
+ A Unity project dedicated for learning ECS, Jobs and Burst.
